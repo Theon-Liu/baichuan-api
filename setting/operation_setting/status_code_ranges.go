@@ -5,11 +5,38 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/QuantumNous/new-api/setting/config"
 )
 
 type StatusCodeRange struct {
 	Start int
 	End   int
+}
+
+// StatusCodeSetting 可配置的状态码设置
+type StatusCodeSetting struct {
+	// 自动禁用渠道的状态码范围
+	AutomaticDisableStatusCodes string `json:"automatic_disable_status_codes"`
+	// 自动重试的状态码范围
+	AutomaticRetryStatusCodes string `json:"automatic_retry_status_codes"`
+	// 永不重试的状态码（如 504, 524）
+	AlwaysSkipRetryStatusCodes string `json:"always_skip_retry_status_codes"`
+}
+
+var statusCodeSetting = StatusCodeSetting{
+	AutomaticDisableStatusCodes: "401",
+	AutomaticRetryStatusCodes:   "100-199,300-399,401-407,409-499,500-503,505-523,525-599",
+	AlwaysSkipRetryStatusCodes:  "504,524", // 默认值，可在前端修改
+}
+
+func init() {
+	// 注册到全局配置管理器
+	config.GlobalConfig.Register("status_code_setting", &statusCodeSetting)
+}
+
+func GetStatusCodeSetting() *StatusCodeSetting {
+	return &statusCodeSetting
 }
 
 var AutomaticDisableStatusCodeRanges = []StatusCodeRange{{Start: 401, End: 401}}
@@ -26,9 +53,20 @@ var AutomaticRetryStatusCodeRanges = []StatusCodeRange{
 	{Start: 525, End: 599},
 }
 
-var alwaysSkipRetryStatusCodes = map[int]struct{}{
-	504: {},
-	524: {},
+// alwaysSkipRetryStatusCodes 从配置中动态解析
+func getAlwaysSkipRetryStatusCodes() map[int]struct{} {
+	result := make(map[int]struct{})
+	codes := strings.Split(statusCodeSetting.AlwaysSkipRetryStatusCodes, ",")
+	for _, code := range codes {
+		code = strings.TrimSpace(code)
+		if code == "" {
+			continue
+		}
+		if num, err := strconv.Atoi(code); err == nil {
+			result[num] = struct{}{}
+		}
+	}
+	return result
 }
 
 func AutomaticDisableStatusCodesToString() string {
@@ -62,7 +100,8 @@ func AutomaticRetryStatusCodesFromString(s string) error {
 }
 
 func IsAlwaysSkipRetryStatusCode(code int) bool {
-	_, exists := alwaysSkipRetryStatusCodes[code]
+	skipCodes := getAlwaysSkipRetryStatusCodes()
+	_, exists := skipCodes[code]
 	return exists
 }
 
