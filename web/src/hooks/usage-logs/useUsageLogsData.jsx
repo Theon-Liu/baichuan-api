@@ -72,6 +72,10 @@ export const useLogsData = () => {
   const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
   const [logType, setLogType] = useState(0);
 
+  // Token and model options for filter dropdowns
+  const [tokenOptions, setTokenOptions] = useState([]);
+  const [modelOptions, setModelOptions] = useState([]);
+
   // User and admin
   const isAdminUser = isAdmin();
   // Role-specific storage key to prevent different roles from overwriting each other
@@ -724,6 +728,22 @@ export const useLogsData = () => {
       .catch((reason) => {
         showError(reason);
       });
+
+    // Load token options
+    API.get('/api/token/?p=0&size=1000').then((res) => {
+      if (res.data.success) {
+        const names = [...new Set((res.data.data?.items || res.data.data || []).map((t) => t.name).filter(Boolean))];
+        setTokenOptions(names.map((n) => ({ label: n, value: n })));
+      }
+    }).catch(() => {});
+
+    // Load model options
+    API.get('/api/channel/models_enabled').then((res) => {
+      if (res.data.success) {
+        const models = (res.data.data || []).map((m) => typeof m === 'string' ? m : m.id || m.name).filter(Boolean);
+        setModelOptions([...new Set(models)].sort().map((m) => ({ label: m, value: m })));
+      }
+    }).catch(() => {});
   }, []);
 
   // Initialize statistics when formApi is available
@@ -795,6 +815,8 @@ export const useLogsData = () => {
     setLogsFormat,
     hasExpandableRows,
     setLogType,
+    tokenOptions,
+    modelOptions,
 
     // Translation
     t,

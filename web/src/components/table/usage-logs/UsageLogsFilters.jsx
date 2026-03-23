@@ -32,6 +32,8 @@ const LogsFilters = ({
   setLogType,
   loading,
   isAdminUser,
+  tokenOptions,
+  modelOptions,
   t,
 }) => {
   return (
@@ -66,22 +68,24 @@ const LogsFilters = ({
           </div>
 
           {/* 其他搜索字段 */}
-          <Form.Input
+          <Form.Select
             field='token_name'
-            prefix={<IconSearch />}
             placeholder={t('令牌名称')}
             showClear
             pure
             size='small'
+            filter
+            optionList={tokenOptions || []}
           />
 
-          <Form.Input
+          <Form.Select
             field='model_name'
-            prefix={<IconSearch />}
             placeholder={t('模型名称')}
             showClear
             pure
             size='small'
+            filter
+            optionList={modelOptions || []}
           />
 
           <Form.Input
